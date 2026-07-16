@@ -4,6 +4,8 @@ import requests
 import json
 import re
 
+#############################
+
 url = "http://localhost:11434/api/chat"
 
 with open("system_prompt.txt", "r", encoding="utf-8") as f:
@@ -76,13 +78,3 @@ def nyx_response(user_input, q):
         json.dump(messages, h, indent=4)
 
     print()
-
-exit_messages = ["/exit", "goodbye", "bye"]
-
-#while True:
-    #user_input = input("you: ")
-    #if user_input.lower() in exit_messages:
-        #break
-    #gh0st_response(user_input)
-
-#print()

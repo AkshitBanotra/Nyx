@@ -1,0 +1,155 @@
+#!/usr/bin/env python3
+
+import sqlite3
+import json
+from scanner import Data
+
+class Registry:
+    
+    def __init__(self, dbfile):
+        self.dbfile = dbfile
+        self.conn = None
+        scanner = Data()
+        self.apps = scanner.app_data()
+
+    def initialize(self):
+        self.conn = sqlite3.connect(self.dbfile)
+        self.cursor = self.conn.cursor()
+        self.cursor.execute("""
+        CREATE TABLE IF NOT EXISTS applications(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT,
+                icon TEXT,
+                command TEXT,
+                TERMINAL INTEGER
+                )
+                """)
+
+    def add(self):
+
+        self.cursor.execute("""SELECT 1 FROM applications LIMIT 1""")
+        row = self.cursor.fetchone()
+        
+        if row is None:
+            for app in self.apps:
+                str_command = json.dumps(app["command"])
+                self.cursor.execute("""
+                INSERT INTO applications(name, icon, command, terminal)
+                VALUES(?, ?, ?, ?)
+                """,
+                                    (
+                                    app["name"],
+                                    app["icon"],
+                                    str_command,
+                                    app["terminal"]
+                                    )
+                                    )
+        else:
+            return
+
+    def search(self, argument):
+        
+        self.cursor.execute("""
+        SELECT *
+        FROM applications
+        WHERE name LIKE ?
+        LIMIT 1
+        """, (f"%{argument}%",)
+                       )
+
+        row = self.cursor.fetchone()
+
+        return row
+
+    def sync(self):
+        
+        self.cursor.execute("""SELECT * FROM applications""")
+        stored_apps = self.cursor.fetchall()
+
+        database_apps = []
+        for stored_app in stored_apps:
+            command = json.loads(stored_app[3])
+            terminal = bool(stored_app[4])
+            database_app = {
+                    "name": stored_app[1],
+                    "icon": stored_app[2],
+                    "command": command,
+                    "terminal": terminal
+                    }
+            database_apps.append(database_app)
+
+        # From scanner's data POV.
+
+        for scanned_app in self.apps:
+            str_command = json.dumps(scanned_app["command"])
+            
+            db_found = False
+            
+            for db_app in database_apps:
+                if db_app["name"] == scanned_app["name"]:
+                    db_found = True
+                    if ( db_app["icon"] != scanned_app["icon"] or db_app["command"] != scanned_app["command"] or db_app["terminal"] != scanned_app["terminal"] ):
+                        self.cursor.execute("""
+                        UPDATE applications
+                        SET icon = ?, command = ?, terminal = ?
+                        WHERE name = ?
+                        """,
+                                            (
+                                                scanned_app["icon"],
+                                                str_command,
+                                                scanned_app["terminal"],
+                                                db_app["name"]
+                                                ))
+
+            if db_found == False:
+                self.cursor.execute("""
+                INSERT INTO applications(name, icon, command, terminal)
+                VALUES (?, ?, ?, ?)
+                """,
+                                    (
+                                        scanned_app["name"],
+                                        scanned_app["icon"],
+                                        str_command,
+                                        scanned_app["terminal"]
+                                        )
+                                    )
+
+        # From Database' data POV.
+
+        for db_app in database_apps:
+            scan_found = False
+            for scanned_app in self.apps:
+                if scanned_app["name"] == db_app["name"]:
+                    scan_found = True
+                    break
+            if scan_found == False:
+                self.cursor.execute("""
+                                    DELETE FROM applications
+                                    WHERE name = ?
+                                    """,
+                                    (
+                                        db_app["name"],
+                                        )
+                                    )
+
+    def commit(self):
+        self.conn.commit()
+
+    def close(self):
+        self.conn.close()
+
+
+if __name__ == "__main__":
+    
+    registry = Registry("applications.db")
+
+    registry.initialize()
+    registry.add()
+
+    registry.sync()
+    registry.commit()
+    print("Search: ", end='')
+    app_search = input("")
+    result = registry.search(app_search)
+    print(result)
+    registry.close()
