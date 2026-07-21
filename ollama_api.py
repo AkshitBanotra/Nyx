@@ -3,26 +3,33 @@
 import requests
 import json
 import re
+from core.PromptManager import PromptManager
 
 #############################
 
 url = "http://localhost:11434/api/chat"
-
-with open("system_prompt.txt", "r", encoding="utf-8") as f:
-    system_prompt = f.read()
+prompt = PromptManager()
 
 with open("messages.json") as g:
     messages = json.load(g)
 
 if len(messages) == 0:
     messages.insert(0, {
-        "role": "system",
-        "content": system_prompt})
+                    "role": "system",
+                    "content": prompt.base_prompt()})
+    messages.insert(1, {
+                    "role": "system",
+                    "content": ""})
+    messages.insert(2, {
+                    "role": "system",
+                    "content": ""})
 
 def ollama_warmup():
     requests.post(url, json={"model": "gemma3:4b-it-q4_K_M", "messages": [{"role": "user", "content": "hi"}], "stream": False})
 
-def nyx_response(user_input, q):
+def nyx_response(user_input, q1, q2):
+
+    INTENTS = ("[LAUNCH]", "[SYSTEM]")
 
     messages.append(
         {
@@ -62,12 +69,19 @@ def nyx_response(user_input, q):
                 assistance_response += chunk["message"]["content"]
                 buffer += chunk["message"]["content"]
                 if re.search(r'[.!?]', buffer):
-                    q.put(buffer.strip())
+                    if buffer.startswith(INTENTS):
+                        q2.put(buffer.strip())
+                    else:
+                        q1.put(buffer.strip())
                     buffer = ""
 
     if buffer.strip():
-        q.put(buffer.strip())
-    q.put(None)
+        if buffer.startswith(INTENTS):
+            q2.put(buffer.strip())
+        else:
+            q1.put(buffer.strip())
+    q1.put(None)
+    q2.put(None)
 
     messages.append({
         "role": "assistant",

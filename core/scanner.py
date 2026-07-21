@@ -40,10 +40,10 @@ class Parser:
                 exec_command.append(part)
 
         name = entry.get("Name")
-        icon = entry.get("Icon")
+        categories = entry.get("Categories")
         is_terminal = entry.getboolean("Terminal", fallback=False)
 
-        return name, exec_command, icon, is_terminal
+        return name, exec_command, categories, is_terminal
 
 class Data(Parser):
     def app_data(self):
@@ -56,11 +56,11 @@ class Data(Parser):
             if result is None:
                 continue
 
-            Name, Command, Icon, Terminal = result
+            Name, Command, Categories, Terminal = result
             
             data = {
                     "name": Name,
-                    "icon": Icon,
+                    "categories": Categories,
                     "command": Command,
                     "terminal": Terminal
                     }

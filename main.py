@@ -6,8 +6,9 @@ import re
 from animation import text_animation
 import time
 import stt
-
-q = queue.Queue()
+import core.dispatcher
+q1 = queue.Queue()
+q2 = queue.Queue()
 
 def clear_screen():
     # \033[H moves the cursor to the top left; \033[2J clears the entire screen
@@ -42,14 +43,17 @@ while True:
     print(user_input)
     if speech.lower() in exit_messages:
         break
-    t1 = threading.Thread(target=nyx_response, args=(user_input, q))
-    t2 = threading.Thread(target=tts_worker, args=(q,))
+    t1 = threading.Thread(target=nyx_response, args=(user_input, q1, q2))
+    t2 = threading.Thread(target=tts_worker, args=(q1,))
+    t3 = threading.Thread(target=core.dispatcher.intent_route, args=(q2,))
 
     t1.start()
     t2.start()
+    t3.start()
 
     t1.join()
     t2.join()
+    t3.join()
 
 
 print()

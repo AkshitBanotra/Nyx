@@ -33,7 +33,7 @@ def callback( indata, frames, time, status ):
     if tts.tts_playing:
         return
 
-    MAX_SILENCE = 18
+    MAX_SILENCE = 13
     audio_chunk = torch.from_numpy(indata.flatten()).float()
     confidence = model_vad(audio_chunk, samplerate).item()
     #print(confidence)

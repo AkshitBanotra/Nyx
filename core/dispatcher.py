@@ -1,0 +1,233 @@
+#!/usr/bin/env python3
+
+import subprocess
+import psutil
+import socket
+import json
+from pathlib import Path
+from core.registry import Registry
+from core.PromptManager import PromptManager
+from ollama_api import messages
+from abc import ABC, abstractmethod
+from datetime import datetime
+
+class Intent(ABC):
+
+    @abstractmethod
+    def execute(self, argument):
+        pass
+
+class LaunchApp(Intent):
+
+    def execute(self, argument):
+
+        DB_PATH = Path(__file__).resolve().parent / "applications.db"
+        registry = Registry(DB_PATH)
+        registry.initialize()
+
+        for one_app in argument.split():
+            app_search = registry.search_name(one_app)
+            print(f"App search result for '{one_app}': {app_search}")
+            matched_apps = None
+            
+            if app_search is not None:
+                command = json.loads(app_search[3])
+                if app_search[4]:
+                    subprocess.Popen(["alacritty", "-e", *command])
+                else:
+                    subprocess.Popen(command)
+            else:
+                matched_apps = registry.search_category(one_app)
+                if matched_apps is not None:
+                    apps = []
+                    for app in matched_apps:
+                        name = app[1]
+                        apps.append(name)
+                    prompt = PromptManager()
+                    messages[2]["content"] = prompt.category_context(apps)
+                    messages.append(
+                            {
+                                "role": "user",
+                                "content": prompt.app_validation()
+                            })
+                else:
+                    fallback_message = """No matching application was found. Ask the user to be more specific if they still want to open an application. If they no longer want to open an application, continue the conversation naturally."""
+                    messages.append(
+                        {
+                            "role": "user",
+                            "content": fallback_message
+                        })
+
+class SysInfo(Intent):
+
+    def __init__(self):
+        self.conv = (1024 ** 3)
+
+    def cpu_info(self):
+        
+        cpu = None
+        cpu = f"{psutil.cpu_percent()}%"
+        return cpu
+    
+    def ram_info(self):
+        
+        ram = None
+        ram_info = psutil.virtual_memory()
+        ram_used = ram_info.used / self.conv
+        ram_total = ram_info.total / self.conv
+        ram_percent = ram_info.percent
+        ram = (
+            f"{ram_used:.1f} GiB used "
+            f"out of {ram_total:.1f} GiB"
+            f"({ram_percent}%)"
+        )
+        return ram
+
+    def disk_info(self):
+
+        disk = None
+        disk_info = psutil.disk_usage('/')
+        free_disk = disk_info.free / self.conv
+        disk_used = disk_info.percent
+        disk = (
+            f"Used: {disk_used:.0f}%"
+            f"Free space: {free_disk} GiB"
+        )
+
+        return disk
+
+    def battery_info(self):
+
+        battery = None
+        battery_info = psutil.sensors_battery()
+        if battery_info:
+            if battery_info.power_plugged:
+                battery = (
+                        f"{battery_info.percent:.0f}%"
+                        f"and Power is plugged in."
+                    )
+            else:
+                battery = (
+                        f"{battery_info.percent:.0f}%"
+                        f"and Power is not plugged in."
+                    )
+        else:
+            battery = f"No battery found on this device."
+
+        return battery
+
+    def vram_info(self):
+
+        used = None
+        total = None
+        perc = None
+        temp = None
+
+        try:
+            result = subprocess.run(["nvidia-smi", "--query-gpu=memory.used,memory.total,temperature.gpu,utilization.gpu", "--format=csv,noheader,nounits"], capture_output=True, text=True, check=True)
+
+            values = []
+            for value in result.stdout.split(","):
+                values.append(value.strip())
+
+            used, total, temp, perc = values
+
+            vram = f"GPU Status → VRAM: {float(used) / 1024:.0f}/{float(total) / 1024:.0f} GiB | Load: {perc}% | Temp: {temp}°C"
+            return vram
+        
+        except FileNotFoundError:
+            vram = "nvidia-smi was not found. NVIDIA drivers may not be installed."
+            return vram
+        except subprocess.CalledProcessError:
+            vram = "Failed to retrieve the GPU status"
+            return vram
+
+    def temp_info(self):
+
+        temps = psutil.sensors_temperatures()
+
+        if "coretemp" in temps:
+            for sensor in temps["coretemp"]:
+                if sensor.label == "packet id 0":
+                    return f"CPU Temperature -> {sensor.current}°C"
+        elif "k10temp" in temps:
+            for sensor in temps["k10temp"]:
+                if sensor.label == "Tctl":
+                    return f"CPU Temperature -> {sensor.current}°C"
+
+    def time_info(self):
+
+        current_time = None
+
+        now = datetime.now()
+
+        current_time = now.strftime("%I:%M %p")
+
+        return current_time
+
+    def date_info(self):
+
+        current_date = None
+        now = datetime.now()
+        current_date = now.strftime("%A, %d %B %Y")
+        
+        return current_date
+
+    def hostname(self):
+
+        hostname = None
+        
+        try:
+            hostname = socket.gethostname()
+            return hostname
+        except Exception:
+            hostname = "Unable to retrieve hostname."
+            return hostname
+
+    def execute(self, argument):
+        
+        sys_info = {
+            "cpu": self.cpu_info,
+            "ram": self.ram_info,
+            "vram": self.vram_info,
+            "battery": self.battery_info,
+            "disk": self.disk_info,
+            "temperature": self.temp_info,
+            "hostname": self.hostname,
+            "time": self.time_info,
+            "date": self.date_info
+        }
+
+        results = {}
+        for key in sys_info:
+            results[key] = None
+
+        for one_info in argument.split():
+            if one_info in sys_info:
+                results[one_info] = sys_info[one_info]()
+
+        prompt = PromptManager()
+        messages[1]["content"] = prompt.system_context(**results)
+        messages.append({
+                        "role": "user",
+                        "content": prompt.sysinfo_trigger()
+        })
+
+def intent_route(q2):
+    
+    intent_router = {
+        "[LAUNCH]": LaunchApp(),
+        "[SYSTEM]": SysInfo()
+    }
+
+    while True:
+        text = q2.get()
+        
+        if text is None:
+            break
+        
+        action, argument = text.split(maxsplit=1)
+        
+        if action in intent_router:
+            intent = intent_router.get(action)
+            intent.execute(argument)

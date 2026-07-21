@@ -22,12 +22,17 @@ def tts_warmup():
 ###################################################################
 
 tts_playing = False
-def tts_worker(q):
+def tts_worker(q1):
     global tts_playing
+    intents = ["[LAUNCH]", "[SYSTEM]"]
     while True:
-        text = q.get()
+        text = q1.get()
         if text == None:
             break
+        
+        for intent in intents:
+            if text == intent:
+                break
 
         generator = pipeline(   
                              text, 
