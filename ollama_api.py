@@ -3,9 +3,12 @@
 import requests
 import json
 import re
+from shared import llm_busy
 from core.PromptManager import PromptManager
 
 #############################
+
+INTENTS = ("[LAUNCH]", "[SYSTEM]")
 
 url = "http://localhost:11434/api/chat"
 prompt = PromptManager()
@@ -27,9 +30,47 @@ if len(messages) == 0:
 def ollama_warmup():
     requests.post(url, json={"model": "gemma3:4b-it-q4_K_M", "messages": [{"role": "user", "content": "hi"}], "stream": False})
 
-def nyx_response(user_input, q1, q2):
+def streaming_response(response, q1, q2=None):
 
-    INTENTS = ("[LAUNCH]", "[SYSTEM]")
+    print("Nyx: ", end='', flush=True)
+    
+        # Ollama sends responses in NDJSON [Newline Delimited JSON] format
+        # for streaming (means each response or line is an independent JSON
+        # object with a new line).
+        # Standard JSON expects one valid object consisting of data under the
+        # {} brackets.
+        # response.iter_lines() will split each line in the incoming response
+        # (which is the token itself) and it gets equal to line.
+    assistance_response = ""
+    buffer = ""
+    for line in response.iter_lines():
+        if line:
+            chunk = json.loads(line)
+            if "message" in chunk:
+                print(chunk["message"]["content"], end='', flush=True)
+                assistance_response += chunk["message"]["content"]
+                buffer += chunk["message"]["content"]
+                if re.search(r'[.!?]', buffer):
+                    if buffer.startswith(INTENTS):
+                        if q2 is not None:
+                            q2.put(buffer.strip())
+                    else:
+                        q1.put(buffer.strip())
+                    buffer = ""
+    
+    if buffer.strip():
+        if buffer.startswith(INTENTS):
+            if q2 is not None:
+                q2.put(buffer.strip())
+            else:
+                q1.put(buffer.strip())
+    q1.put(None)
+    if q2 is not None:
+        q2.put(None)
+
+    return assistance_response
+
+def nyx_response(user_input, q1, q2):
 
     messages.append(
         {
@@ -49,39 +90,10 @@ def nyx_response(user_input, q1, q2):
                 }
             }
 
+    llm_busy = True
     response = requests.post(url, json=data, stream=True)
-    print("Nyx: ", end='', flush=True)
 
-    # Ollama sends responses in NDJSON [Newline Delimited JSON] format
-    # for streaming (means each response or line is an independent JSON
-    # object with a new line).
-    # Standard JSON expects one valid object consisting of data under the
-    # {} brackets.
-    # response.iter_lines() will split each line in the incoming response
-    # (which is the token itself) and it gets equal to line.
-    assistance_response = ""
-    buffer = ""
-    for line in response.iter_lines():
-        if line:
-            chunk = json.loads(line)
-            if "message" in chunk:
-                print(chunk["message"]["content"], end='', flush=True)
-                assistance_response += chunk["message"]["content"]
-                buffer += chunk["message"]["content"]
-                if re.search(r'[.!?]', buffer):
-                    if buffer.startswith(INTENTS):
-                        q2.put(buffer.strip())
-                    else:
-                        q1.put(buffer.strip())
-                    buffer = ""
-
-    if buffer.strip():
-        if buffer.startswith(INTENTS):
-            q2.put(buffer.strip())
-        else:
-            q1.put(buffer.strip())
-    q1.put(None)
-    q2.put(None)
+    assistance_response = streaming_response(response, q1, q2)
 
     messages.append({
         "role": "assistant",
@@ -91,4 +103,5 @@ def nyx_response(user_input, q1, q2):
     with open("messages.json", "w") as h:
         json.dump(messages, h, indent=4)
 
+    llm_busy = False
     print()

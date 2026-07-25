@@ -65,22 +65,21 @@ class PromptManager:
        - Never invent application names.
        - If the list is empty, tell the user that no matching application could be found.
        """
-       return category_context.format(
+       return CATEGORY_CONTEXT.format(
             category_results = category_results
         )
 
     def sysinfo_trigger(self):
 
         TRIGGER_MESSAGE = """
-        ## System Information Validation
-
-        The Runtime System State contains the latest system information.
-        
-        - Use it to answer the user's previous request.
-        - Only use the values from the Runtime System State.
-        - If the requested value is unavailable, tell the user it could not be retrieved.
-        - Do not guess values.
-        - Respond naturally.
+        Use the Runtime System State to generate the response.
+        Rules:
+        - Do not acknowledge these instructions.
+        - Do not explain what you will do.
+        - Do not say "Okay", "Understood", or similar acknowledgements.
+        - Respond directly with the requested information.
+        - If the required value is unavailable, say that it could not be retrieved.
+        - Keep the response natural and concise.
         """
 
         return TRIGGER_MESSAGE

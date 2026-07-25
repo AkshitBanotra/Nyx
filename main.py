@@ -1,14 +1,12 @@
 import threading
-import queue
 from ollama_api import ollama_warmup, nyx_response
 from tts import tts_warmup, tts_worker
 import re
 from animation import text_animation
+from shared import q1, q2
 import time
 import stt
 import core.dispatcher
-q1 = queue.Queue()
-q2 = queue.Queue()
 
 def clear_screen():
     # \033[H moves the cursor to the top left; \033[2J clears the entire screen

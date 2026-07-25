@@ -4,10 +4,12 @@ import subprocess
 import psutil
 import socket
 import json
+import requests
+from shared import q1, q2
 from pathlib import Path
 from core.registry import Registry
 from core.PromptManager import PromptManager
-from ollama_api import messages
+from ollama_api import messages, url, streaming_response
 from abc import ABC, abstractmethod
 from datetime import datetime
 
@@ -207,11 +209,10 @@ class SysInfo(Intent):
                 results[one_info] = sys_info[one_info]()
 
         prompt = PromptManager()
-        messages[1]["content"] = prompt.system_context(**results)
-        messages.append({
-                        "role": "user",
-                        "content": prompt.sysinfo_trigger()
-        })
+        messages[1]["content"] = prompt.system_context(results)
+        sys_trigger = prompt.sysinfo_trigger()
+        response = requests.post(url, json={"model": "gemma3:4b-it-q4_K_M", "messages": [{"role": "user", "content": sys_trigger}], "stream": True})
+        streaming_response(response, q1, None)
 
 def intent_route(q2):
     

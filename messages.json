@@ -13,7 +13,23 @@
     },
     {
         "role": "user",
-        "content": "you: Hey, how are you?"
+        "content": "you:Enjoy you."
+    },
+    {
+        "role": "assistant",
+        "content": "Yeah."
+    },
+    {
+        "role": "user",
+        "content": "you:I said, oh are you?"
+    },
+    {
+        "role": "assistant",
+        "content": "Probably."
+    },
+    {
+        "role": "user",
+        "content": "you:Oh, I do."
     },
     {
         "role": "assistant",
@@ -21,87 +37,55 @@
     },
     {
         "role": "user",
-        "content": "you: Hey, how are you?"
+        "content": "you:open discord."
     },
     {
         "role": "assistant",
-        "content": "Yeah. Just running normally."
+        "content": "[LAUNCH] discord"
     },
     {
         "role": "user",
-        "content": "you: Hey, how are you?"
+        "content": "you:Oh, I do you."
     },
     {
         "role": "assistant",
-        "content": "Things are stable."
+        "content": "Yeah."
     },
     {
         "role": "user",
-        "content": "you: You know what?"
+        "content": "you:How are you?"
     },
     {
         "role": "assistant",
-        "content": "Yeah?"
+        "content": "Running normally."
     },
     {
         "role": "user",
-        "content": "you: Hello, how are you?"
+        "content": "you:What do you mean by when normally?"
     },
     {
         "role": "assistant",
-        "content": "I\u2019m doing okay, thanks for asking."
+        "content": "I think so."
     },
     {
         "role": "user",
-        "content": "you: Now can you open Firefox?"
+        "content": "you:Thank you."
     },
     {
         "role": "assistant",
-        "content": "[LAUNCH] firefox"
+        "content": "Yeah."
     },
     {
         "role": "user",
-        "content": "you: Hello, how are you?"
+        "content": "you:I said, oh, are you?"
     },
     {
         "role": "assistant",
-        "content": "Pretty good, thanks. How about you?"
+        "content": "Probably."
     },
     {
         "role": "user",
-        "content": "you: also great."
-    },
-    {
-        "role": "assistant",
-        "content": "Nice."
-    },
-    {
-        "role": "user",
-        "content": "you: Can you open Firefox?"
-    },
-    {
-        "role": "assistant",
-        "content": "[LAUNCH] firefox"
-    },
-    {
-        "role": "user",
-        "content": "you: Hello, how are you?"
-    },
-    {
-        "role": "assistant",
-        "content": "Yeah. Just running normally."
-    },
-    {
-        "role": "user",
-        "content": "you: on Firefox."
-    },
-    {
-        "role": "assistant",
-        "content": "[LAUNCH] firefox"
-    },
-    {
-        "role": "user",
-        "content": "you: Hello, how are you?"
+        "content": "you:Hello, how are you?"
     },
     {
         "role": "assistant",
@@ -109,87 +93,15 @@
     },
     {
         "role": "user",
-        "content": "you: Can you launch, Firefox?"
+        "content": "you:I want to just talk with you, you know."
     },
     {
         "role": "assistant",
-        "content": "[LAUNCH] firefox"
+        "content": "Yeah."
     },
     {
         "role": "user",
-        "content": "you: Can you open Firefox?"
-    },
-    {
-        "role": "assistant",
-        "content": "[LAUNCH] firefox"
-    },
-    {
-        "role": "user",
-        "content": "you: Can you open Firefox?"
-    },
-    {
-        "role": "assistant",
-        "content": "[LAUNCH] firefox"
-    },
-    {
-        "role": "user",
-        "content": "you: Can you open Firefox?"
-    },
-    {
-        "role": "assistant",
-        "content": "[LAUNCH] firefox"
-    },
-    {
-        "role": "user",
-        "content": "you: it."
-    },
-    {
-        "role": "assistant",
-        "content": "[LAUNCH] firefox"
-    },
-    {
-        "role": "user",
-        "content": "you: it."
-    },
-    {
-        "role": "assistant",
-        "content": "[LAUNCH] firefox"
-    },
-    {
-        "role": "user",
-        "content": "you: again."
-    },
-    {
-        "role": "assistant",
-        "content": "[LAUNCH] firefox"
-    },
-    {
-        "role": "user",
-        "content": "you: You open browser?"
-    },
-    {
-        "role": "assistant",
-        "content": "[LAUNCH] browser"
-    },
-    {
-        "role": "user",
-        "content": "you: said open."
-    },
-    {
-        "role": "assistant",
-        "content": "[LAUNCH] browser"
-    },
-    {
-        "role": "user",
-        "content": "you: Brave browser."
-    },
-    {
-        "role": "assistant",
-        "content": "[LAUNCH] brave"
-    },
-    {
-        "role": "user",
-        "content": "you: Spotify."
+        "content": "you:Can you open Spotify?"
     },
     {
         "role": "assistant",
@@ -197,7 +109,39 @@
     },
     {
         "role": "user",
-        "content": "you: you."
+        "content": "you:Thank you so much."
+    },
+    {
+        "role": "assistant",
+        "content": "Yeah."
+    },
+    {
+        "role": "user",
+        "content": "you:You're working now, it's so good."
+    },
+    {
+        "role": "assistant",
+        "content": "That should work."
+    },
+    {
+        "role": "user",
+        "content": "you:Hey, how are you?"
+    },
+    {
+        "role": "assistant",
+        "content": "Running normally."
+    },
+    {
+        "role": "user",
+        "content": "you:introduce yourself."
+    },
+    {
+        "role": "assistant",
+        "content": "I\u2019m Nyx."
+    },
+    {
+        "role": "user",
+        "content": "you:Okay, so can you open Spotify?"
     },
     {
         "role": "assistant",
@@ -205,7 +149,31 @@
     },
     {
         "role": "user",
-        "content": "you: How are you?"
+        "content": "you:discord."
+    },
+    {
+        "role": "assistant",
+        "content": "[LAUNCH] discord"
+    },
+    {
+        "role": "user",
+        "content": "you:you tell me an interesting fact."
+    },
+    {
+        "role": "assistant",
+        "content": "Did you know that honey never spoils? Archaeologists have found pots of honey in ancient Egyptian tombs that are perfectly edible\u2014though they might crystallize over time."
+    },
+    {
+        "role": "user",
+        "content": "you:Well it's not really funny."
+    },
+    {
+        "role": "assistant",
+        "content": "Probably."
+    },
+    {
+        "role": "user",
+        "content": "you:Yeah."
     },
     {
         "role": "assistant",
@@ -213,18 +181,18 @@
     },
     {
         "role": "user",
-        "content": "you: my file manager."
+        "content": "you:Oh"
     },
     {
         "role": "assistant",
-        "content": "[LAUNCH] file manager"
+        "content": "Yeah."
     },
     {
         "role": "user",
-        "content": "you: CPU usage."
+        "content": "you:So."
     },
     {
         "role": "assistant",
-        "content": "[SYSTEM] cpu"
+        "content": "Running normally."
     }
 ]

@@ -1,73 +1,127 @@
 #!/usr/bin/env python3
 
 import os
+
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 
-########################################
-
 from faster_whisper import WhisperModel
 from silero_vad import load_silero_vad
+
 import sounddevice as sd
 import numpy as np
 import torch
+
 import queue
+import threading
+
+import shared
 import tts
 
 speech_queue = queue.Queue()
 
-model_size = "distil-medium.en"
-model = WhisperModel(model_size, device="cpu", compute_type="int8", cpu_threads=4)
+stt_queue = queue.Queue()
+
+model_size = "distil-small.en"
+
+model = WhisperModel(
+    model_size,
+    device="cpu",
+    compute_type="int8",
+    cpu_threads=4,
+)
+
 model_vad = load_silero_vad()
 
 samplerate = 16000
 CHUNK = 512
 THRESHOLD = 0.5
-silence = 0
+MAX_SILENCE = 16
 buffer = []
 is_speaking = False
+silence = 0
 
-def callback( indata, frames, time, status ):
-    global is_speaking, buffer, silence, speech_queue, tts_playing
+def callback(indata, frames, time, status):
+
+    global buffer
+    global silence
+    global is_speaking
 
     if tts.tts_playing:
         return
 
-    MAX_SILENCE = 13
-    audio_chunk = torch.from_numpy(indata.flatten()).float()
-    confidence = model_vad(audio_chunk, samplerate).item()
-    #print(confidence)
+    if shared.llm_busy:
+        return
+
+    if status:
+        print(status)
+
+    audio_chunk = indata.flatten()
+
+    audio_chunk = torch.from_numpy(audio_chunk).float()
+
+    confidence = model_vad(
+        audio_chunk,
+        samplerate
+    ).item()
+
     if confidence > THRESHOLD:
         if not is_speaking:
-           # print("Speech started")
             is_speaking = True
-        silence = 0
-        buffer.append(indata.flatten().copy())
+            silence = 0
+            chunk = indata.flatten().copy()
+            buffer.append(chunk)
     else:
-        if is_speaking and buffer:
-            silence += 1
-            if silence >= MAX_SILENCE:
-                #print("Speech ended, transcribing...")
-                audio = np.concatenate(buffer)
-                buffer = []
-                is_speaking = False
-                segments, info = model.transcribe(
-                        audio,
-                        language="en",
-                        condition_on_previous_text=False,
-                        hotwords="Nyra"
-                        )
-                for segment in segments:
-                    speech_queue.put(segment.text)
+        if is_speaking:
+            buffer.append(indata.flatten().copy())
 
+            if len(buffer) > 0:
+                silence += 1
+                if silence >= MAX_SILENCE:
+                    # print("Speech ended")
+                    audio = np.concatenate(buffer)
+                    audio = audio.copy()
+                    stt_queue.put(audio)
+                    buffer.clear()
+                    silence = 0
+                    is_speaking = False
+
+def stt_worker():
+
+    while True:
+        audio = stt_queue.get()
+        segments, info = model.transcribe(
+            audio,
+            language="en",
+            condition_on_previous_text=False,
+            hotwords="Nyx",
+            beam_size=1,
+            )
+
+        text = ""
+        for segment in segments:
+            text += segment.text
+
+        text = text.strip()
+        if len(text) > 0:
+            speech_queue.put(text)
 
 def stt_start():
+
+    worker = threading.Thread(
+        target=stt_worker,
+        daemon=True,
+    )
+
+    worker.start()
+
     with sd.InputStream(
-            samplerate=samplerate,
-            channels=1,
-            dtype='float32',
-            blocksize=CHUNK,
-            callback=callback
-            ):
+        samplerate=samplerate,
+        channels=1,
+        dtype="float32",
+        blocksize=CHUNK,
+        callback=callback,
+    ):
+
         while True:
             sd.sleep(100)
