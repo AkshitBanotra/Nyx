@@ -3,12 +3,10 @@
 import requests
 import json
 import re
-from shared import llm_busy
+from shared import llm_busy, INTENTS
 from core.PromptManager import PromptManager
 
 #############################
-
-INTENTS = ("[LAUNCH]", "[SYSTEM]")
 
 url = "http://localhost:11434/api/chat"
 prompt = PromptManager()
@@ -20,15 +18,9 @@ if len(messages) == 0:
     messages.insert(0, {
                     "role": "system",
                     "content": prompt.base_prompt()})
-    messages.insert(1, {
-                    "role": "system",
-                    "content": ""})
-    messages.insert(2, {
-                    "role": "system",
-                    "content": ""})
 
 def ollama_warmup():
-    requests.post(url, json={"model": "gemma3:4b-it-q4_K_M", "messages": [{"role": "user", "content": "hi"}], "stream": False})
+    requests.post(url, json={"model": "batiai/gemma4-e2b:q4", "messages": [{"role": "user", "content": "hi"}], "stream": False})
 
 def streaming_response(response, q1, q2=None):
 
@@ -46,6 +38,7 @@ def streaming_response(response, q1, q2=None):
     for line in response.iter_lines():
         if line:
             chunk = json.loads(line)
+            #print(chunk)
             if "message" in chunk:
                 print(chunk["message"]["content"], end='', flush=True)
                 assistance_response += chunk["message"]["content"]
@@ -56,6 +49,7 @@ def streaming_response(response, q1, q2=None):
                             q2.put(buffer.strip())
                     else:
                         q1.put(buffer.strip())
+                        print("message put...")
                     buffer = ""
     
     if buffer.strip():
@@ -78,14 +72,15 @@ def nyx_response(user_input, q1, q2):
     "content": user_input})
 
     data = {
-            "model": "gemma3:4b-it-q4_K_M",
+            "model": "batiai/gemma4-e2b:q4",
             "messages": messages,
+            "think": False,
             "stream": True,
             "options": {
-                "temperature": 0.65,
-                "top_p": 0.9,
-                "repeat_penalty": 1.15,
-                "num_predict": 256,
+                "temperature": 0.65, # Adjust creativity.
+                "top_p": 0.9, # nucleus sampling - combined probability of tokens.
+                "repeat_penalty": 1.15, # repeatition penality.
+                "num_predict": 256, # max. token generation limit.
                 "seed": 42
                 }
             }
@@ -95,6 +90,7 @@ def nyx_response(user_input, q1, q2):
 
     assistance_response = streaming_response(response, q1, q2)
 
+    #if not assistance_response.startswith(INTENTS):
     messages.append({
         "role": "assistant",
         "content": assistance_response

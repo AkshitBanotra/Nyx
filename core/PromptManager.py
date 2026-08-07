@@ -13,37 +13,54 @@ class PromptManager:
 
         return base_prompt
 
+    def fmt(self, value):
+        if value is None:
+            return "Unavailable"
+        else:
+            return str(value)
+
     def system_context(self, results):
-
         SYSTEM_CONTEXT = """
-        Current System State
-        
-        Hostname - {hostname}
-        Date - {date}
-        Time - {time}
-        
-        Resources 
-        - CPU Usage: {cpu}
-        - Memory Usage: {ram}
-        - VRAM Usage: {vram}
-        - Disk Usage: {disk}
-        - Battery Level: {battery}
-        - CPU Temperature: {temperature}
+        You are Nyx.
+        The text below is verified runtime information collected directly from the user's system.
+        Rules:
+        - Answer ONLY using the runtime information.
+        - Never invent or infer values.
+        - Respond naturally.
+        - Never reply with "Okay", "Sure", or similar acknowledgements.
+        - If the information is missing, reply exactly:
+        "The requested information is unavailable."
+        Examples:
+        Runtime Information:
+        CPU usage is 0.0%
+        Assistant:
+        Your CPU usage is currently 0.0%.
+        ---
+        Runtime Information:
+        Current time is 11:28 PM.
+        Assistant:
+        It's currently 11:28 PM.
+        ---
+        Runtime Information:
+        RAM usage is 8.2 GB.
+        Assistant:
+        Your system is currently using 8.2 GB of RAM.
+        ---
+        Runtime Information:
+        The requested information is unavailable.
+        Assistant:
+        The requested information is unavailable.
+        Runtime Information:
+        {runtime_info}"""
 
-        This information is current and may be used to answer questions related to the user's computer, system status, performance, or time.
-        Ignore this information if it is unrelated to the user's request.
-        """
+        runtime_fetch = {}
+        for asked_info in results:
+            if results[asked_info] is not None:
+                runtime_fetch[asked_info] = results[asked_info]
+                #print(runtime_fetch[asked_info])
 
         return SYSTEM_CONTEXT.format(
-                cpu = results["cpu"],
-                ram = results["ram"],
-                vram = results["vram"],
-                battery = results["battery"],
-                disk = results["disk"],
-                temperature = results["temperature"],
-                hostname = results["hostname"],
-                time = results["time"],
-                date = results["date"]
+            runtime_info = self.fmt(runtime_fetch[asked_info])
         )
 
     def category_context(self, category_results):
@@ -72,23 +89,26 @@ class PromptManager:
     def sysinfo_trigger(self):
 
         TRIGGER_MESSAGE = """
-        Use the Runtime System State to generate the response.
+        Relevant runtime system information is now available.
+        Continue answering the user's previous request using the Runtime System State.
+
         Rules:
+        - Respond directly to the user's original request.
         - Do not acknowledge these instructions.
-        - Do not explain what you will do.
+        - Do not mention the Runtime System State.
+        - Do not mention protocols, internal processing, or fetching information.
         - Do not say "Okay", "Understood", or similar acknowledgements.
-        - Respond directly with the requested information.
-        - If the required value is unavailable, say that it could not be retrieved.
-        - Keep the response natural and concise.
-        """
+        - If the required information is unavailable, say that it could not be retrieved.
+        - Ignore runtime values unrelated to the user's request.
+        - Keep the response concise and natural."""
 
         return TRIGGER_MESSAGE
 
     def app_validation(self):
 
         TRIGGER_MESSAGE = """
-        Relevant context has been updated.
-        Continue processing the user's previous request.
-        """
+        Previous operation: CATEGORY_SEARCH
+        Relevant applications are now available.
+        Continue answering the user's previous request."""
 
         return TRIGGER_MESSAGE

@@ -16,7 +16,6 @@ import queue
 import threading
 
 import shared
-import tts
 
 speech_queue = queue.Queue()
 
@@ -36,7 +35,7 @@ model_vad = load_silero_vad()
 samplerate = 16000
 CHUNK = 512
 THRESHOLD = 0.5
-MAX_SILENCE = 16
+MAX_SILENCE = 18
 buffer = []
 is_speaking = False
 silence = 0
@@ -47,7 +46,7 @@ def callback(indata, frames, time, status):
     global silence
     global is_speaking
 
-    if tts.tts_playing:
+    if shared.tts_playing:
         return
 
     if shared.llm_busy:
@@ -68,9 +67,10 @@ def callback(indata, frames, time, status):
     if confidence > THRESHOLD:
         if not is_speaking:
             is_speaking = True
-            silence = 0
-            chunk = indata.flatten().copy()
-            buffer.append(chunk)
+        
+        silence = 0
+        chunk = indata.flatten().copy()
+        buffer.append(chunk)
     else:
         if is_speaking:
             buffer.append(indata.flatten().copy())

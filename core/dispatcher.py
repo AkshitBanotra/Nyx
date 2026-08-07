@@ -5,13 +5,45 @@ import psutil
 import socket
 import json
 import requests
-from shared import q1, q2
+from shared import q1, q2, CATEGORY_MAP
 from pathlib import Path
 from core.registry import Registry
 from core.PromptManager import PromptManager
 from ollama_api import messages, url, streaming_response
 from abc import ABC, abstractmethod
 from datetime import datetime
+from tts import tts_worker
+
+###############################
+
+message_path = Path(__file__).resolve().parent.parent / "messages.json"
+
+################################
+
+def response_trigger(message):
+    runtime_messages = [
+        {
+            "role": "system",
+            "content": message
+        },
+        {
+            "role": "user",
+            "content": messages[-2]["content"]
+        }
+    ]
+
+    payload = {"model": "batiai/gemma4-e2b:q4", "messages": runtime_messages, "think": False, "stream": True}
+    response = requests.post(url, json=payload)
+    assistant_message = streaming_response(response, q1, None)
+    tts_worker(q1)
+    messages.append({
+        "role": "assistant",
+        "content": assistant_message})
+    
+    with open(message_path, "w") as f:
+        json.dump(messages, f, indent=4)
+
+###############################
 
 class Intent(ABC):
 
@@ -28,16 +60,16 @@ class LaunchApp(Intent):
         registry.initialize()
 
         for one_app in argument.split():
-            app_search = registry.search_name(one_app)
-            print(f"App search result for '{one_app}': {app_search}")
-            matched_apps = None
-            
-            if app_search is not None:
-                command = json.loads(app_search[3])
-                if app_search[4]:
-                    subprocess.Popen(["alacritty", "-e", *command])
-                else:
-                    subprocess.Popen(command)
+            if one_app not in CATEGORY_MAP:
+                app_search = registry.search_name(one_app)
+                #print(f"App search result for '{one_app}': {app_search}")
+                matched_apps = None
+                if app_search is not None:
+                    command = json.loads(app_search[3])
+                    if app_search[4]:
+                        subprocess.Popen(["alacritty", "-e", *command])
+                    else:
+                        subprocess.Popen(command)
             else:
                 matched_apps = registry.search_category(one_app)
                 if matched_apps is not None:
@@ -46,19 +78,12 @@ class LaunchApp(Intent):
                         name = app[1]
                         apps.append(name)
                     prompt = PromptManager()
-                    messages[2]["content"] = prompt.category_context(apps)
-                    messages.append(
-                            {
-                                "role": "user",
-                                "content": prompt.app_validation()
-                            })
+                    #messages[0]["content"] = prompt.category_context(apps)
+                    response_trigger(prompt.category_context(apps))
                 else:
-                    fallback_message = """No matching application was found. Ask the user to be more specific if they still want to open an application. If they no longer want to open an application, continue the conversation naturally."""
-                    messages.append(
-                        {
-                            "role": "user",
-                            "content": fallback_message
-                        })
+                    fallback_message = """The user's request doesn't match any available app or category. Let them know you couldn't find a match and ask them to be more specific about what they want. If they say they don't want to open anything, drop it and continue the conversation as normal."""
+
+                    response_trigger(fallback_message)
 
 class SysInfo(Intent):
 
@@ -69,7 +94,8 @@ class SysInfo(Intent):
         
         cpu = None
         cpu = f"{psutil.cpu_percent()}%"
-        return cpu
+        cpu_usage = f"CPU usage is {cpu}"
+        return cpu_usage
     
     def ram_info(self):
         
@@ -79,9 +105,7 @@ class SysInfo(Intent):
         ram_total = ram_info.total / self.conv
         ram_percent = ram_info.percent
         ram = (
-            f"{ram_used:.1f} GiB used "
-            f"out of {ram_total:.1f} GiB"
-            f"({ram_percent}%)"
+            f"Ram used: {ram_used:.1f} GiB used, Total Ram: {ram_total:.1f} GiB, Ram consumed percentage: {ram_percent}%"
         )
         return ram
 
@@ -92,8 +116,8 @@ class SysInfo(Intent):
         free_disk = disk_info.free / self.conv
         disk_used = disk_info.percent
         disk = (
-            f"Used: {disk_used:.0f}%"
-            f"Free space: {free_disk} GiB"
+            f"Disk used: {disk_used:.0f}%"
+            f"Free Disk space: {free_disk} GiB"
         )
 
         return disk
@@ -105,12 +129,12 @@ class SysInfo(Intent):
         if battery_info:
             if battery_info.power_plugged:
                 battery = (
-                        f"{battery_info.percent:.0f}%"
-                        f"and Power is plugged in."
+                        f"Battery is {battery_info.percent:.0f}%"
+                        f"and the Power is plugged in."
                     )
             else:
                 battery = (
-                        f"{battery_info.percent:.0f}%"
+                        f"Battery is {battery_info.percent:.0f}%"
                         f"and Power is not plugged in."
                     )
         else:
@@ -134,7 +158,7 @@ class SysInfo(Intent):
 
             used, total, temp, perc = values
 
-            vram = f"GPU Status → VRAM: {float(used) / 1024:.0f}/{float(total) / 1024:.0f} GiB | Load: {perc}% | Temp: {temp}°C"
+            vram = f"GPU Status → VRAM: {float(used) / 1024:.0f}GiB /{float(total) / 1024:.0f} GiB | Load: {perc}% | Temp: {temp}°C"
             return vram
         
         except FileNotFoundError:
@@ -165,15 +189,17 @@ class SysInfo(Intent):
 
         current_time = now.strftime("%I:%M %p")
 
-        return current_time
+        time = f"Current time is {current_time}."
+
+        return time
 
     def date_info(self):
 
         current_date = None
         now = datetime.now()
         current_date = now.strftime("%A, %d %B %Y")
-        
-        return current_date
+        date = f"Current date: {current_date}"
+        return date
 
     def hostname(self):
 
@@ -181,7 +207,8 @@ class SysInfo(Intent):
         
         try:
             hostname = socket.gethostname()
-            return hostname
+            hname = f"Computer's name is: {hostname}"
+            return hname
         except Exception:
             hostname = "Unable to retrieve hostname."
             return hostname
@@ -200,30 +227,32 @@ class SysInfo(Intent):
             "date": self.date_info
         }
 
-        results = {}
-        for key in sys_info:
-            results[key] = None
+        #results = {}
+        #for key in sys_info:
+            #results[key] = None
 
+        results = {}
         for one_info in argument.split():
             if one_info in sys_info:
                 results[one_info] = sys_info[one_info]()
-
+            else:
+                results[one_info] = None
+        #print(results)
+        
         prompt = PromptManager()
-        messages[1]["content"] = prompt.system_context(results)
-        sys_trigger = prompt.sysinfo_trigger()
-        response = requests.post(url, json={"model": "gemma3:4b-it-q4_K_M", "messages": [{"role": "user", "content": sys_trigger}], "stream": True})
-        streaming_response(response, q1, None)
+        response_trigger(prompt.system_context(results))
 
 def intent_route(q2):
-    
+
     intent_router = {
         "[LAUNCH]": LaunchApp(),
         "[SYSTEM]": SysInfo()
     }
 
     while True:
+
         text = q2.get()
-        
+
         if text is None:
             break
         

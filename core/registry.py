@@ -4,6 +4,7 @@ import sqlite3
 import json
 from .scanner import Data
 import subprocess
+from shared import CATEGORY_MAP
 
 class Registry:
     
@@ -64,17 +65,6 @@ class Registry:
         return row
 
     def search_category(self, argument):
-
-        CATEGORY_MAP = {
-            "browser": "WebBrowser",
-            "terminal": "TerminalEmulator",
-            "editor": "TextEditor",
-            "ide": "Development",
-            "music": "Player",
-            "video": "AudioVideo",
-            "file manager": "FileManager",
-            "settings": "Settings",
-        }
 
         self.cursor.execute("""
         SELECT *

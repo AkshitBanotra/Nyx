@@ -1,6 +1,7 @@
 import sounddevice as sd
-from kokoro import KPipeline
 import threading
+from kokoro import KPipeline
+from shared import INTENTS, tts_playing
 
 # sd is for audio playback output.
 
@@ -21,18 +22,17 @@ def tts_warmup():
 
 ###################################################################
 
-tts_playing = False
 def tts_worker(q1):
-    global tts_playing
-    intents = ["[LAUNCH]", "[SYSTEM]"]
+
     while True:
         text = q1.get()
         if text == None:
             break
+        print("message get...")
         
-        for intent in intents:
-            if text == intent:
-                break
+        #for intent in intents:
+            #if text == intent:
+                #break
 
         generator = pipeline(   
                              text, 

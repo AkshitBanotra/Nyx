@@ -32,8 +32,8 @@ limit = 0
 def callback( indata, frames, time, status ):
     global is_speaking, buffer, silence, speech_queue, tts_playing, limit
 
-    if shared.llm_busy:
-        return
+    #if shared.llm_busy:
+        #return
     
     if tts.tts_playing:
         return

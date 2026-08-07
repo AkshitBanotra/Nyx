@@ -36,10 +36,11 @@ stt_thread.start()
 clear_screen()
 
 while True:
-    speech = stt.speech_queue.get()
-    user_input = f"you:{speech}"
-    print(user_input)
-    if speech.lower() in exit_messages:
+    #speech = stt.speech_queue.get()
+    #user_input = f"you:{speech}"
+    user_input = input("you: ")
+    #print(user_input)
+    if any(message in user_input for message in exit_messages):
         break
     t1 = threading.Thread(target=nyx_response, args=(user_input, q1, q2))
     t2 = threading.Thread(target=tts_worker, args=(q1,))
