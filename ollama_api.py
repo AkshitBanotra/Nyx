@@ -24,6 +24,7 @@ def ollama_warmup():
 
 def streaming_response(response, q1, q2=None):
 
+
     print("Nyx: ", end='', flush=True)
     
         # Ollama sends responses in NDJSON [Newline Delimited JSON] format
@@ -40,7 +41,8 @@ def streaming_response(response, q1, q2=None):
             chunk = json.loads(line)
             #print(chunk)
             if "message" in chunk:
-                print(chunk["message"]["content"], end='', flush=True)
+                if not chunk["message"]["content"].startswith(INTENTS):
+                    print(chunk["message"]["content"], end='', flush=True)
                 assistance_response += chunk["message"]["content"]
                 buffer += chunk["message"]["content"]
                 if re.search(r'[.!?]', buffer):
@@ -49,7 +51,7 @@ def streaming_response(response, q1, q2=None):
                             q2.put(buffer.strip())
                     else:
                         q1.put(buffer.strip())
-                        print("message put...")
+                        #print("message put...")
                     buffer = ""
     
     if buffer.strip():

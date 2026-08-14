@@ -78,7 +78,6 @@ class LaunchApp(Intent):
                         name = app[1]
                         apps.append(name)
                     prompt = PromptManager()
-                    #messages[0]["content"] = prompt.category_context(apps)
                     response_trigger(prompt.category_context(apps))
                 else:
                     fallback_message = """The user's request doesn't match any available app or category. Let them know you couldn't find a match and ask them to be more specific about what they want. If they say they don't want to open anything, drop it and continue the conversation as normal."""
@@ -93,8 +92,11 @@ class SysInfo(Intent):
     def cpu_info(self):
         
         cpu = None
-        cpu = f"{psutil.cpu_percent()}%"
-        cpu_usage = f"CPU usage is {cpu}"
+        cpu = psutil.cpu_percent()
+        cpu_usage = f"""
+        type: cpu
+        usage: {cpu:.0f}%
+        """
         return cpu_usage
     
     def ram_info(self):
@@ -104,9 +106,13 @@ class SysInfo(Intent):
         ram_used = ram_info.used / self.conv
         ram_total = ram_info.total / self.conv
         ram_percent = ram_info.percent
-        ram = (
-            f"Ram used: {ram_used:.1f} GiB used, Total Ram: {ram_total:.1f} GiB, Ram consumed percentage: {ram_percent}%"
-        )
+        ram = f"""
+        type: ram
+        usage: {ram_used:.0f} GB
+        total: {ram_total:.0f} GB
+        usage_percent: {ram_percent:.0f}%
+        """
+
         return ram
 
     def disk_info(self):
@@ -115,10 +121,11 @@ class SysInfo(Intent):
         disk_info = psutil.disk_usage('/')
         free_disk = disk_info.free / self.conv
         disk_used = disk_info.percent
-        disk = (
-            f"Disk used: {disk_used:.0f}%"
-            f"Free Disk space: {free_disk} GiB"
-        )
+        disk = f"""
+        type: disk
+        usage: {disk_used:.0f}%
+        free space: {free_disk:.0f}
+        """
 
         return disk
 
@@ -128,15 +135,17 @@ class SysInfo(Intent):
         battery_info = psutil.sensors_battery()
         if battery_info:
             if battery_info.power_plugged:
-                battery = (
-                        f"Battery is {battery_info.percent:.0f}%"
-                        f"and the Power is plugged in."
-                    )
+                battery = f"""
+                type: battery
+                current: {battery_info.percent:.0f}%
+                charger: plugged in
+                """
             else:
-                battery = (
-                        f"Battery is {battery_info.percent:.0f}%"
-                        f"and Power is not plugged in."
-                    )
+                battery = f"""
+                type: battery
+                current: {battery_info.percent:.0f}%
+                charger: not plugged in
+                """
         else:
             battery = f"No battery found on this device."
 
@@ -153,12 +162,19 @@ class SysInfo(Intent):
             result = subprocess.run(["nvidia-smi", "--query-gpu=memory.used,memory.total,temperature.gpu,utilization.gpu", "--format=csv,noheader,nounits"], capture_output=True, text=True, check=True)
 
             values = []
-            for value in result.stdout.split(","):
+            for value in float(result.stdout.split(",")):
                 values.append(value.strip())
 
-            used, total, temp, perc = values
+            used, total, temp, perc = map(float, values)
 
-            vram = f"GPU Status → VRAM: {float(used) / 1024:.0f}GiB /{float(total) / 1024:.0f} GiB | Load: {perc}% | Temp: {temp}°C"
+            #vram = f"GPU Status → VRAM: {float(used) / 1024:.0f}GiB /{float(total) / 1024:.0f} GiB | Load: {perc} percent | Temp: {temp}°C"
+            vram = f"""
+            type: GPU VRAM
+            used: {float(used) / 1024:.0f} GB
+            total: {float(total) / 1024:.0f} GB
+            Current load: {perc:.0f}%
+            Current temperature: {temp:.0f} °C
+            """
             return vram
         
         except FileNotFoundError:
@@ -174,12 +190,18 @@ class SysInfo(Intent):
 
         if "coretemp" in temps:
             for sensor in temps["coretemp"]:
-                if sensor.label == "packet id 0":
-                    return f"CPU Temperature -> {sensor.current}°C"
+                if sensor.label.lower() == "package id 0":
+                    return f"""
+                    type: CPU temperature
+                    Current Temperature: {sensor.current}°C
+                    """
         elif "k10temp" in temps:
             for sensor in temps["k10temp"]:
                 if sensor.label == "Tctl":
-                    return f"CPU Temperature -> {sensor.current}°C"
+                    return f"""
+                    type: CPU Temperature
+                    Current Temperature: {sensor.current} °C
+                    """
 
     def time_info(self):
 
@@ -189,7 +211,10 @@ class SysInfo(Intent):
 
         current_time = now.strftime("%I:%M %p")
 
-        time = f"Current time is {current_time}."
+        time = f"""
+        type: time
+        Current time: {current_time}
+        """
 
         return time
 
@@ -198,7 +223,9 @@ class SysInfo(Intent):
         current_date = None
         now = datetime.now()
         current_date = now.strftime("%A, %d %B %Y")
-        date = f"Current date: {current_date}"
+        date = f"""type: date
+        Current Date: {current_date}
+        """
         return date
 
     def hostname(self):
@@ -207,7 +234,10 @@ class SysInfo(Intent):
         
         try:
             hostname = socket.gethostname()
-            hname = f"Computer's name is: {hostname}"
+            hname = f"""
+            type: Computer name
+            name: {hostname}
+            """
             return hname
         except Exception:
             hostname = "Unable to retrieve hostname."

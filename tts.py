@@ -28,7 +28,7 @@ def tts_worker(q1):
         text = q1.get()
         if text == None:
             break
-        print("message get...")
+        #print("message get...")
         
         #for intent in intents:
             #if text == intent:

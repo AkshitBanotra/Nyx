@@ -2,7 +2,7 @@
 
 import sqlite3
 import json
-from .scanner import Data
+from core.scanner import Data
 import subprocess
 from shared import CATEGORY_MAP
 
