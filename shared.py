@@ -9,6 +9,7 @@ q2 = queue.Queue()
 
 llm_busy = False
 tts_playing = False
+llm_listen = False
 
 #intent_message = q2.get()
 

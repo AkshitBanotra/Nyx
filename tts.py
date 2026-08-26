@@ -1,7 +1,7 @@
 import sounddevice as sd
 import threading
 from kokoro import KPipeline
-from shared import INTENTS, tts_playing
+import shared
 
 # sd is for audio playback output.
 
@@ -52,7 +52,7 @@ def tts_worker(q1):
             if audio is not None:
                 #print(f"Playing: {gs}")
                 #print(str(len(audio)/24000) + "s" + " and " + str(len(audio))
-                tts_playing = True
+                shared.tts_playing = True
                 sd.play(audio, 24000)
                 sd.wait()
-                tts_playing = False
+                shared.tts_playing = False

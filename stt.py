@@ -46,6 +46,9 @@ def callback(indata, frames, time, status):
     global silence
     global is_speaking
 
+    if not shared.llm_listen:
+        return
+
     if shared.tts_playing:
         return
 
@@ -114,14 +117,20 @@ def stt_start():
     )
 
     worker.start()
+    while True:
+        if shared.llm_listen:
+            with sd.InputStream(
+                samplerate=samplerate,
+                channels=1,
+                dtype="float32",
+                blocksize=CHUNK,
+                callback=callback,
+            ):
+                print("INPUT STREAM OPENED!")
+                while shared.llm_listen:
+                    sd.sleep(100)
 
-    with sd.InputStream(
-        samplerate=samplerate,
-        channels=1,
-        dtype="float32",
-        blocksize=CHUNK,
-        callback=callback,
-    ):
-
-        while True:
+        else:
             sd.sleep(100)
+            #sd.stop()
+            #sd.close()
