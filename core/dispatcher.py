@@ -20,6 +20,8 @@ message_path = Path(__file__).resolve().parent.parent / "messages.json"
 
 ################################
 
+#user_message = messages[-2]["content"]
+
 def response_trigger(message):
     runtime_messages = [
         {
@@ -82,7 +84,7 @@ class LaunchApp(Intent):
                 else:
                     fallback_message = """The user's request doesn't match any available app or category. Let them know you couldn't find a match and ask them to be more specific about what they want. If they say they don't want to open anything, drop it and continue the conversation as normal."""
 
-                    response_trigger(fallback_message)
+                    response_trigger(fallback_message, user_message)
 
 class SysInfo(Intent):
 

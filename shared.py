@@ -11,6 +11,8 @@ llm_busy = False
 tts_playing = False
 llm_listen = False
 
+url = "http://localhost:11434/api/chat"
+
 #intent_message = q2.get()
 
 INTENTS = ("[LAUNCH]", "[SYSTEM]")

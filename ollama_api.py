@@ -3,15 +3,17 @@
 import requests
 import json
 import re
-from shared import llm_busy, INTENTS
+from shared import llm_busy, INTENTS, url
 from core.PromptManager import PromptManager
+from pathlib import Path
 
 #############################
 
-url = "http://localhost:11434/api/chat"
 prompt = PromptManager()
 
-with open("messages.json") as g:
+message_path = Path(__file__).resolve().parent / "messages.json"
+
+with open(message_path) as g:
     messages = json.load(g)
 
 if len(messages) == 0:

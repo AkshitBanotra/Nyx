@@ -3,26 +3,33 @@
 import socket
 import os
 import threading
-from os import environ
-from ollama_api import ollama_warmup, nyx_response
+import json
+import requests
+from ollama_api import ollama_warmup, streaming_response, nyx_response,messages
 from tts import tts_warmup, tts_worker
+from pathlib import Path
 import re
 from animation import text_animation
 import shared
 import time
 import stt
 import core.dispatcher
+from core.PromptManager import PromptManager
 import subprocess
+from datetime import datetime
 
 ###########################
 
-home = environ["HOME"]
+home = os.environ["HOME"]
 sound_path1 = f"{home}/gh0st/sounds/ux_sound_1.mp3"
 sound_path2 = f"{home}/gh0st/sounds/ux_sound_2.mp3"
+sound_path3 = f"{home}/gh0st/sounds/ux_sound_3.mp3"
 
-###########################
+##########################
+
 
 socket_path = "/tmp/my_socket"
+message_path = Path(__file__).resolve().parent.parent / "messages.json"
 
 # Remove old socket file if it exists.
 
@@ -42,9 +49,49 @@ server.bind(socket_path)
 
 server.listen(1)
 
-# Accept a client.
+#########################################
 
-#connection, _ = server.accept()
+def auto_trigger(message, trigger):
+    runtime_message = [
+        {
+            "role": "system",
+            "content": message
+        },
+        {
+            "role": "user",
+            "content": trigger
+        }
+    ]
+    payload = {"model": "batiai/gemma4-e2b:q4", "messages": runtime_message, "think": False, "stream": True}
+    response = requests.post(shared.url, json=payload)
+    print(response)
+    assistant_message = streaming_response(response, shared.q1, None)
+    tts_worker(shared.q1)
+    messages.append({
+                   "role": "assistant",
+                   "content": assistant_message})
+
+    with open(message_path, "w") as f:
+        json.dump(messages, f, indent=4)
+
+##########################################
+
+def time_date_info():
+
+    now = datetime.now()
+    current_date = now.strftime("%d %B %Y")
+    current_day = now.strftime("%A")
+    current_time = now.strftime("%I:%M %p")
+
+    time_data = {
+        "date": current_date,
+        "day": current_day,
+        "time": current_time
+    }
+
+    return time_data
+
+#########################################
 
 def llm_toggle():
     try:
@@ -59,9 +106,13 @@ def llm_toggle():
 
             if data == b'LLM_TOGGLE':
                 print("Data recieved...")
-                subprocess.run(["notify-send", "[NYX]", "Listening..."])
-                subprocess.run(["paplay", sound_path2])
-                shared.llm_listen = True
+                shared.llm_listen = not shared.llm_listen
+                if shared.llm_listen:
+                    subprocess.run(["notify-send", "[NYX]", "Listening..."])
+                    subprocess.run(["paplay", sound_path2])
+                else:
+                    subprocess.run(["notify-send", "[NYX]", "Going Silent..."])
+                    subprocess.run(["paplay", sound_path3])
                 print("LLM_LISTEN STATE: ", str(shared.llm_listen))
 
     finally:
@@ -93,7 +144,13 @@ tts_warmup()
 
 subprocess.run(["notify-send", "[Nyx]", "ready."])
 subprocess.run(["paplay", sound_path1])
-time.sleep(1)
+
+prompt = PromptManager()
+time.sleep(0.5)
+greet = "Hello."
+auto_trigger(prompt.greet(time_date_info()), greet)
+
+########################
 
 exit_messages = [ "/exit", "goodbye", "bye" ]
 
@@ -117,8 +174,6 @@ while True:
     user_input = f"you:{speech}"
     #user_input = input("you: ")
     print(user_input)
-    if any(message in user_input for message in exit_messages):
-        break
     t1 = threading.Thread(target=nyx_response, args=(user_input, shared.q1, shared.q2))
     t2 = threading.Thread(target=tts_worker, args=(shared.q1,))
     t3 = threading.Thread(target=core.dispatcher.intent_route, args=(shared.q2,))

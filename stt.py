@@ -7,6 +7,7 @@ os.environ["MKL_NUM_THREADS"] = "1"
 
 from faster_whisper import WhisperModel
 from silero_vad import load_silero_vad
+import subprocess
 
 import sounddevice as sd
 import numpy as np
@@ -35,7 +36,8 @@ model_vad = load_silero_vad()
 samplerate = 16000
 CHUNK = 512
 THRESHOLD = 0.5
-MAX_SILENCE = 18
+SHORT_MAX_SILENCE = 18
+LONG_MAX_SILENCE = 313
 buffer = []
 is_speaking = False
 silence = 0
@@ -80,14 +82,18 @@ def callback(indata, frames, time, status):
 
             if len(buffer) > 0:
                 silence += 1
-                if silence >= MAX_SILENCE:
-                    # print("Speech ended")
-                    audio = np.concatenate(buffer)
-                    audio = audio.copy()
-                    stt_queue.put(audio)
-                    buffer.clear()
-                    silence = 0
-                    is_speaking = False
+                if silence >= LONG_MAX_SILENCE:
+                    shared.llm_listen = False
+                    print("LLM_LISTENING_STATE: ", shared.llm_listen)
+                else:
+                    if silence >= SHORT_MAX_SILENCE:
+                        # print("Speech ended")
+                        audio = np.concatenate(buffer)
+                        audio = audio.copy()
+                        stt_queue.put(audio)
+                        buffer.clear()
+                        silence = 0
+                        is_speaking = False
 
 def stt_worker():
 

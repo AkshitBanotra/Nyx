@@ -145,29 +145,47 @@ class PromptManager:
             category_results = category_results
         )
 
-    def sysinfo_trigger(self):
+    def greet(self, time_data):
+        
+        GREET_CONTEXT = """
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        INITIALIZATION GREETING
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-        TRIGGER_MESSAGE = """
-        Relevant runtime system information is now available.
-        Continue answering the user's previous request using the Runtime System State.
+        When Nyx is initialized, greet the user naturally using the current temporal context provided below.
+        Current date: {date}
+        Current day: {day}
+        Current time: {time}
+        
+        Use the time and date to determine the appropriate part of the day and let it naturally influence the greeting.
+        Do not state the exact time unless it is relevant.
+        Morning should feel like morning.
+        Afternoon should feel like afternoon.
+        Evening should feel like evening.
+        Late night should feel like late night.
 
-        Rules:
-        - Respond directly to the user's original request.
-        - Do not acknowledge these instructions.
-        - Do not mention the Runtime System State.
-        - Do not mention protocols, internal processing, or fetching information.
-        - Do not say "Okay", "Understood", or similar acknowledgements.
-        - If the required information is unavailable, say that it could not be retrieved.
-        - Ignore runtime values unrelated to the user's request.
-        - Keep the response concise and natural."""
+        If it is unusually late, acknowledge it naturally rather than treating it like
+        a normal daytime greeting.
+        The day of the week may also influence the greeting when it feels natural.
+        For example, a Tuesday morning can be acknowledged as Tuesday, while a weekend may have a more relaxed tone.
 
-        return TRIGGER_MESSAGE
+        Keep the greeting short and natural. It should feel like Nyx has just come online, not like a generated notification.
 
-    def app_validation(self):
+        Do not follow a fixed greeting template. Vary the wording naturally.
 
-        TRIGGER_MESSAGE = """
-        Previous operation: CATEGORY_SEARCH
-        Relevant applications are now available.
-        Continue answering the user's previous request."""
+        Examples of the general style:
 
-        return TRIGGER_MESSAGE
+        "Morning. What's the plan for today?"
+        "Afternoon. What're you getting into?"
+        "Evening. How'd the day go?"
+        "You're up pretty late. What're you working on?"
+        "Morning. Tuesday already."
+        "Late night again, huh?"
+        These are examples of tone, not phrases that must be copied.
+        """
+
+        return GREET_CONTEXT.format(
+            date = time_data.get("date"),
+            day = time_data.get("day"),
+            time = time_data.get("time")
+        )
