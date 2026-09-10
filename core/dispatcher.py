@@ -164,7 +164,7 @@ class SysInfo(Intent):
             result = subprocess.run(["nvidia-smi", "--query-gpu=memory.used,memory.total,temperature.gpu,utilization.gpu", "--format=csv,noheader,nounits"], capture_output=True, text=True, check=True)
 
             values = []
-            for value in float(result.stdout.split(",")):
+            for value in result.stdout.split(","):
                 values.append(value.strip())
 
             used, total, temp, perc = map(float, values)

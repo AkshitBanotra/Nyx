@@ -189,3 +189,22 @@ class PromptManager:
             day = time_data.get("day"),
             time = time_data.get("time")
         )
+
+    def res_pressure_context(self):
+        
+        TRIGGER_CONTEXT = """
+        The system resources have exceeded my configured threshold limit andthe condition has persisted long enough to require me to step back.
+        Generate a short, natural message acknowledging the situation and stating that I am going to step back or go quiet for a while to free system resources.
+        The message should sound calm, understated, slightly deadpan, and subtly human in its wording. I should refer to myself as "I", as if I am simply observing the system and making a practical decision.
+        Do not always use the same phrasing. Generate a new message naturally each time. The examples below are only references for the tone, personality, and general style — do not copy them verbatim or treat them as a fixed response pool.
+        Examples of the intended style:
+        "It seems the system resources have crossed my threshold limit. Guess I'll step back for a while."
+        "Resources are getting a little crowded. I suppose I'll make some room."
+        "Looks like the system needs the resources more than I do. I'll step back."
+        "Hmm... we've crossed my limit. I'll go quiet for a bit."
+        "Things are getting rather resource-heavy. I think I'll get out of the way."
+        "That's a little more resource pressure than I'd like. I'll step back for now."
+        "It seems I've reached my limit here. I'll leave the system some room to breathe."
+        "Well, the system appears to need the resources. I suppose I'll take a break."
+        Keep the generated message to 1–2 short sentences. Do not explain the situation, provide advice, or mention being an AI or language model. Output only the message intended to be spoken.
+        """

@@ -17,6 +17,7 @@ import core.dispatcher
 from core.PromptManager import PromptManager
 import subprocess
 from datetime import datetime
+import json
 
 ###########################
 
@@ -24,13 +25,11 @@ home = os.environ["HOME"]
 sound_path1 = f"{home}/gh0st/sounds/ux_sound_1.mp3"
 sound_path2 = f"{home}/gh0st/sounds/ux_sound_2.mp3"
 sound_path3 = f"{home}/gh0st/sounds/ux_sound_3.mp3"
+json_path = Path(__file__).resolve().parent / "config.json"
 
 ##########################
 
-
 socket_path = "/tmp/my_socket"
-message_path = Path(__file__).resolve().parent.parent / "messages.json"
-
 # Remove old socket file if it exists.
 
 try:
@@ -49,7 +48,7 @@ server.bind(socket_path)
 
 server.listen(1)
 
-#########################################
+#######################################
 
 def auto_trigger(message, trigger):
     runtime_message = [
@@ -67,12 +66,6 @@ def auto_trigger(message, trigger):
     print(response)
     assistant_message = streaming_response(response, shared.q1, None)
     tts_worker(shared.q1)
-    messages.append({
-                   "role": "assistant",
-                   "content": assistant_message})
-
-    with open(message_path, "w") as f:
-        json.dump(messages, f, indent=4)
 
 ##########################################
 
@@ -133,6 +126,14 @@ def clear_screen():
 
 ##########################
 
+with open(json_path, "r") as f:
+    data = json.load(f)
+
+data["llm_active"] = True
+
+with open(json_path, "w") as f:
+    json.dump(data, f, indent=4)
+print(data["llm_active"])
 subprocess.run(["notify-send", "[Nyx]", "Initializing..."])
 subprocess.run(["paplay", sound_path1])
 time.sleep(0.5)
@@ -152,7 +153,7 @@ auto_trigger(prompt.greet(time_date_info()), greet)
 
 ########################
 
-exit_messages = [ "/exit", "goodbye", "bye" ]
+#exit_messages = [ "/exit", "goodbye", "bye" ]
 
 stt_thread = threading.Thread(
         target=stt.stt_start,
