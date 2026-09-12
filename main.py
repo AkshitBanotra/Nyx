@@ -15,10 +15,10 @@ import time
 import stt
 import core.dispatcher
 from core.PromptManager import PromptManager
+from resources.resource_manager import ResourceManager
 import subprocess
 from datetime import datetime
 import json
-#from resource_manager.resource_manager import resource_manager
 
 ###########################
 
@@ -28,6 +28,9 @@ sound_path2 = f"{home}/gh0st/sounds/ux_sound_2.mp3"
 sound_path3 = f"{home}/gh0st/sounds/ux_sound_3.mp3"
 json_path = Path(__file__).resolve().parent / "config.json"
 
+with open(json_path, "r") as f:
+    data = json.load(f)
+    
 #######################################
 
 def auto_trigger(message, trigger):
@@ -127,13 +130,26 @@ def clear_screen():
 
 ##########################
 
-#def resource_manager():
+def resource_manager():
 
+    resource_manager = ResourceManager()
+    resource_high = resource_manager.res_state_change()
+
+    if resource_high:
+        
+        data["llm_active"]: False
+        with open(json_path, "w") as f:
+            json.dump(data, f, indent=4)
+        
+        prompt = PromptManager()
+        trigger = "System resources have crossed the configured threshold."
+        auto_trigger(prompt.res_pressure_context, trigger)
+        subprocess.run(["notify-send", "[NYX]", "Sleeping..."])
+        subprocess.run(["paplay", self.sound_path1])
+        subprocess.run(["ollama", "stop", shared.model])
+        subprocess.run(["systemctl", "--user", "stop", "Nyx.service"])
 
 ##########################
-
-with open(json_path, "r") as f:
-    data = json.load(f)
 
 data["llm_active"] = True
 

@@ -49,17 +49,14 @@ class ResourceManager:
 
     def res_pressure_high_response(self, data):
 
-        subprocess.run(["notify-send", "[NYX]", "Sleeping..."])
-        subprocess.run(["paplay", self.sound_path1])
         data["res_high"]  = True
+        
         with open(self.json_path, "w") as f:
             json.dump(data, f, indent=4)
         return data["res_high"]
             
     def res_pressure_low_response(self, data):
 
-        subprocess.run(["notify-send", "[NYX]", "Observing..."])
-        subprocess.run(["paplay", self.sound_path2])
         data["res_high"]  = False
         with open(self.json_path, "w") as f:
             json.dump(data, f, indent=4)
