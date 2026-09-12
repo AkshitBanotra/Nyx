@@ -18,6 +18,7 @@ from core.PromptManager import PromptManager
 import subprocess
 from datetime import datetime
 import json
+#from resource_manager.resource_manager import resource_manager
 
 ###########################
 
@@ -26,27 +27,6 @@ sound_path1 = f"{home}/gh0st/sounds/ux_sound_1.mp3"
 sound_path2 = f"{home}/gh0st/sounds/ux_sound_2.mp3"
 sound_path3 = f"{home}/gh0st/sounds/ux_sound_3.mp3"
 json_path = Path(__file__).resolve().parent / "config.json"
-
-##########################
-
-socket_path = "/tmp/my_socket"
-# Remove old socket file if it exists.
-
-try:
-    os.unlink(socket_path)
-except FileNotFoundError:
-    pass
-
-# Create Unix domain socket.
-
-server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-
-# Bind socket to filesystem path
-server.bind(socket_path)
-
-# Listen for connections
-
-server.listen(1)
 
 #######################################
 
@@ -87,9 +67,30 @@ def time_date_info():
 #########################################
 
 def llm_toggle():
+    
+    socket_path = "/tmp/my_socket"
+
+    # Remove old socket file if it exists.
+
+    try:
+        os.unlink(socket_path)
+    except FileNotFoundError:
+        pass
+
+    # Create Unix domain socket.
+
+    server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+
+    # Bind socket to filesystem path
+
+    server.bind(socket_path)
+
+    # Listen for connections
+
+    server.listen(1)
+
     try:
         while True:
-
             connection, _ = server.accept()
             print("Client connected...")
 
@@ -126,6 +127,11 @@ def clear_screen():
 
 ##########################
 
+#def resource_manager():
+
+
+##########################
+
 with open(json_path, "r") as f:
     data = json.load(f)
 
@@ -133,7 +139,9 @@ data["llm_active"] = True
 
 with open(json_path, "w") as f:
     json.dump(data, f, indent=4)
+
 print(data["llm_active"])
+
 subprocess.run(["notify-send", "[Nyx]", "Initializing..."])
 subprocess.run(["paplay", sound_path1])
 time.sleep(0.5)
@@ -146,8 +154,11 @@ tts_warmup()
 subprocess.run(["notify-send", "[Nyx]", "ready."])
 subprocess.run(["paplay", sound_path1])
 
-prompt = PromptManager()
 time.sleep(0.5)
+
+# For startup greet.
+
+prompt = PromptManager()
 greet = "Hello."
 auto_trigger(prompt.greet(time_date_info()), greet)
 
