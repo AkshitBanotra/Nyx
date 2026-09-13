@@ -5,7 +5,33 @@ import json
 import subprocess
 from pathlib import Path
 from core.PromptManager import PromptManager
-from threading import Timer
+import time
+import threading
+
+class Timer:
+
+    def start(self, duration):
+        
+        self.duration = duration
+
+        self.running = True
+        i = self.duration
+        while self.running:
+
+            #print(f"\rTime left: {i}")
+            if i <= 0:
+                break
+
+            i -= 1
+            time.sleep(1)
+
+    def cancel(self):
+
+        self.running = False
+
+    def test_cancel(self):
+        input()
+        self.cancel()
 
 class ResourceManager:
     
@@ -14,8 +40,6 @@ class ResourceManager:
         parent = Path(__file__).resolve().parent.parent
 
         self.json_path = parent / "config.json"
-        self.sound_path1 = parent / "sounds" / "ux_sound_4.mp3"
-        self.sound_path2 = parent / "sounds" / "ux_sound_5.mp3"
         self.threshold_ram = 75
         self.threshold_vram = 95
         self.threshold_cpu = 80
@@ -62,7 +86,7 @@ class ResourceManager:
             json.dump(data, f, indent=4)
         return data["res_high"]
 
-    def res_state_change(self):
+    def res_state(self):
 
         with open(self.json_path, "r") as f:
             data = json.load(f)
@@ -79,4 +103,8 @@ class ResourceManager:
 
 if __name__ == "__main__":
     resource_manager = ResourceManager()
-    print(resource_manager.res_state_change())
+    print(resource_manager.res_state())
+    timer = Timer()
+    thread = threading.Thread(target=timer.test_cancel)
+    thread.start()
+    timer.start(5)
