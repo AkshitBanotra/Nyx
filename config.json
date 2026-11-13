@@ -1,4 +1,4 @@
 {
-    "llm_active": false,
-    "res_high": false
+    "llm_active": true,
+    "res_high": true
 }

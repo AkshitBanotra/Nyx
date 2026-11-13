@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
-import socket
 import os
+import socket
+from pathlib import Path
 import threading
 import json
 import requests
-from ollama_api import ollama_warmup, streaming_response, nyx_response,messages
+from ollama_api import ollama_warmup, streaming_response, nyx_response, messages
 from tts import tts_warmup, tts_worker
 from pathlib import Path
 import re
@@ -15,22 +16,24 @@ import time
 import stt
 import core.dispatcher
 from core.PromptManager import PromptManager
-from resources.resource_manager import ResourceManager
+from resources.resource_manager import Timer, ResourceManager
 import subprocess
 from datetime import datetime
 import json
+from filelock import FileLock
 
 ###########################
 
-home = os.environ["HOME"]
-sound_path1 = f"{home}/gh0st/sounds/ux_sound_1.mp3"
-sound_path2 = f"{home}/gh0st/sounds/ux_sound_2.mp3"
-sound_path3 = f"{home}/gh0st/sounds/ux_sound_3.mp3"
-json_path = Path(__file__).resolve().parent / "config.json"
+parent = Path(__file__).resolve().parent
 
-with open(json_path, "r") as f:
-    data = json.load(f)
-    
+sound_path1 = parent / "sounds" / "ux_sound_1.mp3"
+sound_path2 = parent / "sounds" / "ux_sound_2.mp3"
+sound_path3 = parent / "sounds" / "ux_sound_3.mp3"
+sound_path4 = parent / "sounds" / "ux_sound_4.mp3"
+json_path = parent / "config.json"
+
+lock = FileLock(parent/"config.json.lock")
+
 #######################################
 
 def auto_trigger(message, trigger):
@@ -113,6 +116,7 @@ def llm_toggle():
                 print("LLM_LISTEN STATE: ", str(shared.llm_listen))
 
     finally:
+      
         connection.close()
         server.close()
 
@@ -133,28 +137,52 @@ def clear_screen():
 def resource_manager():
 
     resource_manager = ResourceManager()
-    resource_high = resource_manager.res_state_change()
+    timer = Timer()
+    #lock = threading.Lock()
+    #resource_high = resource_manager.res_state()
 
-    if resource_high:
-        
-        data["llm_active"]: False
-        with open(json_path, "w") as f:
-            json.dump(data, f, indent=4)
-        
-        prompt = PromptManager()
-        trigger = "System resources have crossed the configured threshold."
-        auto_trigger(prompt.res_pressure_context, trigger)
-        subprocess.run(["notify-send", "[NYX]", "Sleeping..."])
-        subprocess.run(["paplay", self.sound_path1])
-        subprocess.run(["ollama", "stop", shared.model])
-        subprocess.run(["systemctl", "--user", "stop", "Nyx.service"])
+    def res_timer_cancel():
+            while True:
+                if not resource_manager.res_state():
+                    timer.cancel()
+            time.sleep(1)
 
+    cancel_timer = threading.Thread(target=res_timer_cancel)
+
+    cancel_timer.start()
+    while True:
+        if resource_manager.res_state():
+            with lock:
+                
+                with open(parent / "corows = cursor.fetchall()nfig.json", "r") as f:
+                    dict_data = json.load(f)
+                
+                timer.start(5)
+                data["llm_active"] = False
+                with open(json_path, "w") as f:
+                    json.dump(dict_data, f, indent=4)
+
+                prompt = PromptManager()
+                trigger = "Resources have crossed the threshold values. Follow your instructions. You don't have to give troubleshoot etc. Just reply like Nyx, in that personality, that resources have crossed threshold values etc."
+                auto_trigger(prompt.res_pressure_context(), trigger)
+                subprocess.run(["notify-send", "[NYX]", "Sleeping..."])
+                subprocess.run(["paplay", sound_path4])
+                subprocess.run(["ollama", "stop", shared.model])
+                subprocess.run(["systemctl", "--user", "stop", "Nyx.service"])
+
+        time.sleep(1)
 ##########################
 
-data["llm_active"] = True
+# When this main process starts, it'll turn the llm_active state to true...
 
-with open(json_path, "w") as f:
-    json.dump(data, f, indent=4)
+with lock:
+    with open(json_path, "r") as f:
+        data = json.load(f)
+
+    data["llm_active"] = True
+
+    with open(json_path, "w") as f:
+        json.dump(data, f, indent=4)
 
 print(data["llm_active"])
 
@@ -192,8 +220,14 @@ uds_thread = threading.Thread(
         daemon=True
         )
 
+res_manager_thread = threading.Thread(
+        target=resource_manager,
+        daemon=True
+        )
+
 stt_thread.start()
 uds_thread.start()
+res_manager_thread.start()
 
 clear_screen()
 

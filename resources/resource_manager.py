@@ -4,9 +4,9 @@ import psutil
 import json
 import subprocess
 from pathlib import Path
-from core.PromptManager import PromptManager
 import time
 import threading
+from filelock import FileLock
 
 class Timer:
 
@@ -40,6 +40,7 @@ class ResourceManager:
         parent = Path(__file__).resolve().parent.parent
 
         self.json_path = parent / "config.json"
+        self.lock = FileLock(parent / "config.json.lock")
         self.threshold_ram = 75
         self.threshold_vram = 95
         self.threshold_cpu = 80
