@@ -233,7 +233,6 @@ This subsystem is still being developed and is not yet considered stable.
 | Kokoro TTS | Speech synthesis |
 | SQLite | Application registry |
 | keyd | Global keyboard shortcuts |
-| Bash | System-level integration |
 | systemd | Background service management |
 
 ## Development Status
